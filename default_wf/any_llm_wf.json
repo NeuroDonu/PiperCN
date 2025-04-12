@@ -1,0 +1,200 @@
+{
+  "id": "776a2a8d-1667-4dee-b125-7a9ed1ad84a8",
+  "revision": 0,
+  "last_node_id": 36,
+  "last_link_id": 45,
+  "nodes": [
+    {
+      "id": 30,
+      "type": "PiperLLMQuestion",
+      "pos": [
+        316.31756591796875,
+        514.172607421875
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "question",
+          "type": "STRING",
+          "links": [
+            38
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperLLMQuestion"
+      },
+      "widgets_values": [
+        "What is your name?"
+      ]
+    },
+    {
+      "id": 29,
+      "type": "PiperAskAnyLLM",
+      "pos": [
+        965.7875366210938,
+        270.41278076171875
+      ],
+      "size": [
+        352.79998779296875,
+        154
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "api_key"
+          },
+          "link": 37
+        },
+        {
+          "name": "question",
+          "type": "STRING",
+          "widget": {
+            "name": "question"
+          },
+          "link": 38
+        }
+      ],
+      "outputs": [
+        {
+          "name": "llm_answer",
+          "type": "STRING",
+          "links": [
+            45
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperAskAnyLLM"
+      },
+      "widgets_values": [
+        "",
+        "",
+        "command-r7b",
+        1,
+        120
+      ]
+    },
+    {
+      "id": 36,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1453.7156982421875,
+        324.627685546875
+      ],
+      "size": [
+        369.6410827636719,
+        192.5862579345703
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 45
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "",
+        "My name is Command. I am a large language model built by Cohere. I am designed to assist users by providing thorough and informative responses to their queries. How can I help you today?"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "PiperApiKey",
+      "pos": [
+        358.7174072265625,
+        241.3325958251953
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "api_key",
+          "type": "STRING",
+          "links": [
+            37
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperApiKey"
+      },
+      "widgets_values": [
+        "api"
+      ]
+    }
+  ],
+  "links": [
+    [
+      37,
+      14,
+      0,
+      29,
+      0,
+      "STRING"
+    ],
+    [
+      38,
+      30,
+      0,
+      29,
+      1,
+      "STRING"
+    ],
+    [
+      45,
+      29,
+      0,
+      36,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        -150.85093714553386,
+        137.17596604380557
+      ]
+    }
+  },
+  "version": 0.4
+}

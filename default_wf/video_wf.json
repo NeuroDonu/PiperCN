@@ -1,0 +1,208 @@
+{
+  "id": "776a2a8d-1667-4dee-b125-7a9ed1ad84a8",
+  "revision": 0,
+  "last_node_id": 39,
+  "last_link_id": 50,
+  "nodes": [
+    {
+      "id": 37,
+      "type": "PiperGenerateVideo",
+      "pos": [
+        909.080078125,
+        241.71295166015625
+      ],
+      "size": [
+        390.5999755859375,
+        154
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "api_key"
+          },
+          "link": 47
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 49
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_url_or_status",
+          "type": "STRING",
+          "links": [
+            50
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperGenerateVideo"
+      },
+      "widgets_values": [
+        "",
+        "",
+        "preview",
+        5,
+        600
+      ]
+    },
+    {
+      "id": 38,
+      "type": "PiperPositivePrompt",
+      "pos": [
+        296.8579406738281,
+        506.15740966796875
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "positive_prompt",
+          "type": "STRING",
+          "links": [
+            49
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperPositivePrompt"
+      },
+      "widgets_values": [
+        "A beautiful landscape"
+      ]
+    },
+    {
+      "id": 39,
+      "type": "PiperSaveVideo",
+      "pos": [
+        1403.524658203125,
+        283.9352111816406
+      ],
+      "size": [
+        340.20001220703125,
+        106
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_url",
+          "type": "STRING",
+          "widget": {
+            "name": "video_url"
+          },
+          "link": 50
+        }
+      ],
+      "outputs": [
+        {
+          "name": "saved_video_path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperSaveVideo"
+      },
+      "widgets_values": [
+        "",
+        "PiperVideo",
+        ""
+      ]
+    },
+    {
+      "id": 14,
+      "type": "PiperApiKey",
+      "pos": [
+        358.7174072265625,
+        241.3325958251953
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "api_key",
+          "type": "STRING",
+          "links": [
+            47
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperApiKey"
+      },
+      "widgets_values": [
+        "api"
+      ]
+    }
+  ],
+  "links": [
+    [
+      47,
+      14,
+      0,
+      37,
+      0,
+      "STRING"
+    ],
+    [
+      49,
+      38,
+      0,
+      37,
+      1,
+      "STRING"
+    ],
+    [
+      50,
+      37,
+      0,
+      39,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        -294.18431116897136,
+        162.73150803599307
+      ]
+    }
+  },
+  "version": 0.4
+}

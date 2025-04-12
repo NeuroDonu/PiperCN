@@ -20,7 +20,6 @@ from .nodes.video_node import PiperGenerateVideo
 from .nodes.save_video_node import PiperSaveVideo
 from .nodes.deepseek_node import PiperAskDeepseek
 from .nodes.llm_question_node import PiperLLMQuestion
-from .nodes.llm_output_node import PiperLLMOutput
 #from .nodes.face_to_image_node import PiperFaceToImage
 from .nodes.any_llm_node import PiperAskAnyLLM
 #from .nodes.upscale_node import PiperUpscaleImage
@@ -41,7 +40,6 @@ NODE_CLASS_MAPPINGS = {
     "PiperSaveVideo": PiperSaveVideo,
     "PiperAskDeepseek": PiperAskDeepseek,
     "PiperLLMQuestion": PiperLLMQuestion,
-    "PiperLLMOutput": PiperLLMOutput,
     #"PiperFaceToImage": PiperFaceToImage,
     "PiperAskAnyLLM": PiperAskAnyLLM,
     #"PiperUpscaleImage": PiperUpscaleImage,
@@ -60,7 +58,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PiperSaveVideo": "Piper Save Video (PiperAPI)",
     "PiperAskDeepseek": "Piper Ask Deepseek (PiperAPI)",
     "PiperLLMQuestion": "Piper LLM Question (PiperAPI)",
-    "PiperLLMOutput": "Piper LLM Output (PiperAPI)",
     #"PiperFaceToImage": "Piper Face To Image (PiperAPI)",
     "PiperAskAnyLLM": "Piper Ask Any LLM (PiperAPI)",
     #"PiperUpscaleImage": "Piper Upscale Image (PiperAPI)",

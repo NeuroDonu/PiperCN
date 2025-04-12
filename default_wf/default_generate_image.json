@@ -1,0 +1,192 @@
+{
+  "id": "776a2a8d-1667-4dee-b125-7a9ed1ad84a8",
+  "revision": 0,
+  "last_node_id": 26,
+  "last_link_id": 30,
+  "nodes": [
+    {
+      "id": 19,
+      "type": "PiperPositivePrompt",
+      "pos": [
+        325.8203125,
+        526.7852783203125
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "positive_prompt",
+          "type": "STRING",
+          "links": [
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperPositivePrompt"
+      },
+      "widgets_values": [
+        "A beautiful landscape"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "PreviewImage",
+      "pos": [
+        1592.2841796875,
+        428.588134765625
+      ],
+      "size": [
+        210,
+        246
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 28
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 26,
+      "type": "PiperGenerateImage",
+      "pos": [
+        1055.153076171875,
+        391.9221496582031
+      ],
+      "size": [
+        390.5999755859375,
+        174
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "api_key",
+          "type": "STRING",
+          "widget": {
+            "name": "api_key"
+          },
+          "link": 30
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "status_text",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "image_output",
+          "type": "IMAGE",
+          "links": [
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperGenerateImage"
+      },
+      "widgets_values": [
+        "",
+        "",
+        "sdxl-turbo",
+        5,
+        300
+      ]
+    },
+    {
+      "id": 14,
+      "type": "PiperApiKey",
+      "pos": [
+        358.7174072265625,
+        241.3325958251953
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "api_key",
+          "type": "STRING",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PiperApiKey"
+      },
+      "widgets_values": [
+        "set api"
+      ]
+    }
+  ],
+  "links": [
+    [
+      28,
+      26,
+      1,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      29,
+      19,
+      0,
+      26,
+      1,
+      "STRING"
+    ],
+    [
+      30,
+      14,
+      0,
+      26,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.4641000000000006,
+      "offset": [
+        -434.7929204127477,
+        -126.01605146409953
+      ]
+    }
+  },
+  "version": 0.4
+}
