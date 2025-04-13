@@ -109,8 +109,9 @@ class PiperGenerateImage:
                  if image_url and isinstance(image_url, str):
                      image_tensor = url_to_image_tensor(image_url) # Use imported helper
                      if image_tensor is not None:
-                         # Success! Return the status and the image tensor
-                         return (image_tensor,)
+                         # Success! Return the status text and the image tensor
+                         status_msg = f"Success: Image generated from {image_url}"
+                         return (status_msg, image_tensor,)
                      else:
                          # Download or processing failed
                          err_msg = f"Completed, but failed to download/process image from {image_url}"
