@@ -1,8 +1,5 @@
-# nodes/flux_image_node.py
 import time
 import json
-
-# Import helpers (no upload needed for this one)
 from .utils import post_request, get_request, url_to_image_tensor, create_empty_image_tensor
 
 class PiperGenerateFluxImage:
@@ -11,8 +8,9 @@ class PiperGenerateFluxImage:
         return {
             "required": {
                 "api_key": ("STRING", {"forceInput": True}),
-                "positive_prompt": ("STRING", {"forceInput": True}), # Input for prompt
-                "poll_interval": ("INT", {"default": 2, "min": 1, "max": 30}), # Flux might be faster
+                "positive_prompt": ("STRING", {"forceInput": True}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "poll_interval": ("INT", {"default": 2, "min": 1, "max": 30}),
                 "max_wait_time": ("INT", {"default": 180, "min": 30, "max": 1800}),
             }
         }
@@ -20,19 +18,21 @@ class PiperGenerateFluxImage:
     RETURN_TYPES = ("STRING", "IMAGE")
     RETURN_NAMES = ("status_text", "output_image")
     FUNCTION = "generate_flux_image"
-    CATEGORY = "PiperAPI/Image" # Keep in Image category
+    CATEGORY = "PiperAPI/Image"
 
-    def generate_flux_image(self, api_key, positive_prompt, poll_interval, max_wait_time):
+    def generate_flux_image(self, api_key, positive_prompt, seed, poll_interval, max_wait_time):
+        print(f"PiperGenerateFluxImage called with seed: {seed} (Note: Seed is used for refresh, not sent to API)")
+
         launch_url = "https://app.piper.my/api/generate-images-for-free-v1/launch"
         state_url_template = "https://app.piper.my/api/launches/{}/state"
         empty_image = create_empty_image_tensor()
 
-        # 1. Launch Flux generation task
         launch_data = {
             "inputs": {
                 "prompt": positive_prompt
             }
         }
+        print(f"Launching Flux generation with data: {launch_data}")
 
         launch_response = post_request(launch_url, api_key, launch_data)
 
@@ -44,7 +44,6 @@ class PiperGenerateFluxImage:
         launch_id = launch_response["_id"]
         state_url = state_url_template.format(launch_id)
 
-        # 2. Poll based on 'outputs' and 'errors' fields (standard logic)
         start_time = time.time()
         while True:
             current_time = time.time()
@@ -56,6 +55,7 @@ class PiperGenerateFluxImage:
             state_response = get_request(state_url, api_key)
 
             if not state_response:
+                print(f"Retrying state check in {poll_interval}s...")
                 time.sleep(poll_interval)
                 continue
 
@@ -73,7 +73,8 @@ class PiperGenerateFluxImage:
                  if output_image_url and isinstance(output_image_url, str):
                      output_image_tensor = url_to_image_tensor(output_image_url)
                      if output_image_tensor is not None:
-                         return (f"Completed: {output_image_url}", output_image_tensor)
+                         status_msg = f"Success: Image generated from {output_image_url}"
+                         return (status_msg, output_image_tensor,)
                      else:
                          err_msg = f"Completed, but failed to download/process Flux image from {output_image_url}"
                          print(err_msg)
@@ -83,4 +84,5 @@ class PiperGenerateFluxImage:
                      print(err_msg)
                      return (err_msg, empty_image)
 
-            time.sleep(poll_interval) 
+            print(f"Outputs/Errors are empty for {launch_id}. Assuming 'running'. Waiting {poll_interval}s...")
+            time.sleep(poll_interval)

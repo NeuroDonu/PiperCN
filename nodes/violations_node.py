@@ -1,13 +1,25 @@
 # nodes/violations_node.py
 import time
-import json # For formatting the output string
+import json # Для форматирования выходной строки
+import torch
+import traceback # Для вывода критических ошибок
 
-# Import helpers from utils.py within the same directory
-from .utils import post_request, get_request, upload_image_and_get_url
+# Импортируем нужные хелперы из utils.py
+from .utils import (
+    # post_request, # Используем post_request_json для ясности
+    post_request_json,
+    get_request,
+    tensor_to_base64_data_uri, # Наш конвертер
+    create_empty_image_tensor # Хотя не используется для вывода, может понадобиться для utils
+    # upload_image_and_get_url # Больше не нужен
+)
 
 class PiperViolationsDetector:
-    # Define default checks and maybe other constants if needed
+    # Определяем проверки по умолчанию
     DEFAULT_CHECKS = "underage,nsfw"
+    # Задаем константы для опроса
+    DEFAULT_POLL_INTERVAL = 2  # Секунды
+    DEFAULT_MAX_WAIT_TIME = 120 # Секунды
 
     @classmethod
     def INPUT_TYPES(s):
@@ -16,93 +28,135 @@ class PiperViolationsDetector:
                 "api_key": ("STRING", {"forceInput": True}),
                 "image": ("IMAGE",),
                 "checks": ("STRING", {"multiline": False, "default": s.DEFAULT_CHECKS}),
-                "poll_interval": ("INT", {"default": 2, "min": 1, "max": 60}), # Faster polling might be okay here
-                "max_wait_time": ("INT", {"default": 120, "min": 10, "max": 600}), # Probably faster than image gen
+                # Убрали poll_interval и max_wait_time
+                "image_format": (["PNG", "JPEG"], {"default": "PNG"}) # Формат для Base64
             }
+            # seed здесь не нужен, т.к. детектор не генеративный
         }
 
-    RETURN_TYPES = ("STRING",)
+    RETURN_TYPES = ("STRING",) # Возвращаем JSON строку с результатами
     RETURN_NAMES = ("results_text",)
     FUNCTION = "detect_violations"
-    CATEGORY = "PiperAPI/Image"
+    CATEGORY = "PiperAPI/Analysis" # Можно сменить категорию на Analysis
 
     def parse_checks(self, checks_string):
-        """Parses the comma-separated checks string into a list."""
+        """Парсит строку проверок, разделенных запятыми, в список."""
         if not checks_string:
             return []
+        # Убираем пустые строки после разделения
         return [check.strip() for check in checks_string.split(',') if check.strip()]
 
-    def detect_violations(self, api_key, image, checks, poll_interval, max_wait_time):
+    # Убираем poll_interval, max_wait_time из аргументов, добавляем image_format
+    def detect_violations(self, api_key, image, checks, image_format):
+        # Используем константы
+        poll_interval = self.DEFAULT_POLL_INTERVAL
+        max_wait_time = self.DEFAULT_MAX_WAIT_TIME
+
         launch_url = "https://app.piper.my/api/violations-detector-v1/launch"
         state_url_template = "https://app.piper.my/api/launches/{}/state"
-        default_error_result = json.dumps({"error": "Processing failed before completion"})
+        # Стандартный результат ошибки в формате JSON
+        default_error_result_json = json.dumps({"error": "Обработка прервана до завершения"})
 
-        # Upload image first
-        uploaded_image_url = upload_image_and_get_url(image, api_key)
-        if not uploaded_image_url:
-            err_msg = "Error: Failed to upload image to get URL."
-            print(err_msg)
+        # 1. Конвертация изображения в Base64
+        try:
+            base64_image_uri = tensor_to_base64_data_uri(image, image_format=image_format)
+            if not base64_image_uri:
+                err_msg = "Критическая ошибка: Не удалось конвертировать изображение в Base64."
+                print(f"[PiperViolations] {err_msg}")
+                return (json.dumps({"error": err_msg}),) # Возвращаем ошибку в JSON
+        except Exception as e:
+            print(f"[PiperViolations] Критическая ошибка при конвертации в Base64:")
+            traceback.print_exc()
+            err_msg = f"Критическая ошибка подготовки Base64: {e}"
             return (json.dumps({"error": err_msg}),)
 
-        # Parse checks string into a list
+        # 2. Парсинг проверок
         checks_list = self.parse_checks(checks)
         if not checks_list:
-             # Use default if parsing resulted in empty list? Or error? Let's default.
-             print(f"Warning: No valid checks provided, using default: {self.DEFAULT_CHECKS}")
+             # Если пользователь ничего не ввел или ввел некорректно, используем дефолтные
+             print(f"[PiperViolations] Предупреждение: Не указаны валидные проверки, используются стандартные: {self.DEFAULT_CHECKS}")
              checks_list = self.parse_checks(self.DEFAULT_CHECKS)
 
-        # 1. Launch detection
+        # 3. Запуск задачи
         launch_data = {
             "inputs": {
-                "image": uploaded_image_url,
+                "image": base64_image_uri, # Используем Base64
                 "checks": checks_list
             }
         }
-        print(f"Launching Piper violations detection with data: {launch_data}")
-        launch_response = post_request(launch_url, api_key, launch_data)
 
-        if not launch_response or "_id" not in launch_response:
-            err_msg = "Error: Failed to launch detection or get launch ID."
-            print(err_msg)
-            return (json.dumps({"error": err_msg}),)
+        try:
+            # print("[PiperViolations] Отправка запроса на запуск...") # Убрано
+            # Используем post_request_json
+            launch_response = post_request_json(launch_url, api_key, launch_data)
+        except Exception as e:
+             print(f"[PiperViolations] Критическая ошибка сети при запуске задачи:")
+             traceback.print_exc()
+             err_msg = f"Критическая ошибка сети (запуск): {e}"
+             return (json.dumps({"error": err_msg}),)
+
+        # 4. Проверка ответа на запуск
+        if not launch_response or not isinstance(launch_response, dict) or "_id" not in launch_response:
+            api_error_details = "Неизвестно"
+            if launch_response and isinstance(launch_response, dict): api_error_details = launch_response.get('error', launch_response)
+            elif launch_response: api_error_details = str(launch_response)
+
+            err_msg = f"Критическая ошибка: Не удалось запустить задачу или получить ID. Ответ API: {api_error_details}"
+            print(f"[PiperViolations] {err_msg}")
+            return (json.dumps({"error": err_msg, "details": api_error_details}),)
 
         launch_id = launch_response["_id"]
         state_url = state_url_template.format(launch_id)
-        print(f"Piper detection launched with ID: {launch_id}")
+        # print(f"[PiperViolations] Задача запущена. ID: {launch_id}. Опрос...") # Убрано
 
-        # 2. Poll based on 'outputs' and 'errors' fields
+        # 5. Опрос состояния
         start_time = time.time()
         while True:
             current_time = time.time()
             if current_time - start_time > max_wait_time:
-                err_msg = f"Error: Timed out waiting for detection {launch_id}"
-                print(err_msg)
+                err_msg = f"Критическая ошибка: Таймаут ({max_wait_time} сек) ожидания задачи {launch_id}"
+                print(f"[PiperViolations] {err_msg}")
                 return (json.dumps({"error": err_msg}),)
 
-            print(f"Checking state for {launch_id}...")
-            state_response = get_request(state_url, api_key)
+            try:
+                state_response = get_request(state_url, api_key)
+            except Exception as e:
+                 print(f"[PiperViolations] Ошибка сети при опросе {launch_id} (повтор через {poll_interval} сек): {e}")
+                 time.sleep(poll_interval)
+                 continue
 
-            if not state_response:
-                print(f"Retrying state check in {poll_interval}s...")
+            if not state_response or not isinstance(state_response, dict):
+                print(f"[PiperViolations] Предупреждение: Некорректный ответ о состоянии {launch_id} (повтор через {poll_interval} сек).")
                 time.sleep(poll_interval)
                 continue
 
-            # Check for errors first
             errors = state_response.get("errors")
-            if errors and isinstance(errors, list) and len(errors) > 0:
-                err_msg = f"Error: Detection failed (API Errors: {errors})"
-                print(err_msg)
-                print(f"Full state response: {state_response}")
-                # Return the errors list as JSON string
-                return (json.dumps({"error": "API processing failed", "details": errors}),)
+            if errors:
+                if isinstance(errors, list) and len(errors) > 0: error_details = errors # Возвращаем весь список ошибок
+                elif isinstance(errors, str): error_details = [errors] # Оборачиваем строку в список
+                else: error_details = [str(errors)] # На всякий случай
+                err_msg = f"Критическая ошибка API: Задача {launch_id} не удалась."
+                print(f"[PiperViolations] {err_msg} Детали: {error_details}")
+                return (json.dumps({"error": "API processing failed", "details": error_details}),)
 
-            # Check if outputs are populated
             outputs = state_response.get("outputs")
             if outputs and isinstance(outputs, dict) and len(outputs) > 0:
-                 print(f"Detection completed! Outputs: {outputs}")
-                 # Return the whole outputs dictionary as a JSON string
-                 return (json.dumps(outputs, indent=2),)
+                 # Форматируем успешный результат в JSON
+                 try:
+                    result_json = json.dumps(outputs, indent=2)
+                    print(f"[PiperViolations] Успех: Детекция завершена для задачи {launch_id}.") # Выводим сообщение об успехе
+                    return (result_json,)
+                 except Exception as e:
+                    print(f"[PiperViolations] Критическая ошибка форматирования результата {launch_id}:")
+                    traceback.print_exc()
+                    err_msg = f"Критическая ошибка форматирования результата: {e}"
+                    # Возвращаем исходный словарь outputs, если не удалось сериализовать
+                    return (json.dumps({"warning": err_msg, "raw_outputs": outputs}),)
 
-            # If no errors and outputs are empty, assume it's still running
-            print(f"Outputs/Errors are empty for {launch_id}. Assuming 'running'. Waiting {poll_interval}s...")
-            time.sleep(poll_interval) 
+            # Если нет ни ошибок, ни outputs - ждем дальше
+            time.sleep(poll_interval)
+
+        # Сюда код не должен дойти
+        # err_msg = f"Критическая ошибка: Цикл опроса неожиданно завершился для {launch_id}."
+        # print(f"[PiperViolations] {err_msg}")
+        # return (default_error_result_json,)

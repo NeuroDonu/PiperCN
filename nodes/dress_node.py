@@ -1,13 +1,21 @@
 # nodes/dress_node.py
 import time
-import json
+import torch
+import traceback # Для вывода критических ошибок
 
-# Import helpers from utils.py
-# Includes post_request, get_request, url_to_image_tensor, create_empty_image_tensor, upload_image_and_get_url
-from .utils import post_request, get_request, url_to_image_tensor, create_empty_image_tensor, upload_image_and_get_url
+# Импортируем нужные хелперы
+from .utils import (
+    # post_request, # Заменяем на post_request_json
+    post_request_json,
+    get_request,
+    url_to_image_tensor,
+    create_empty_image_tensor,
+    tensor_to_base64_data_uri # Наш конвертер
+    # upload_image_and_get_url # Больше не нужен
+)
 
 class PiperDressFactory:
-    # Define options for dropdowns
+    # Списки опций оставляем
     GENDER_LIST = ["auto", "male", "female"]
     STYLE_LIST = [
         "red_swimsuit", "dress_cyber_bloom", "dress_vintage_muse", "dress_celestial_queen",
@@ -19,111 +27,148 @@ class PiperDressFactory:
         "lingerie_golden_hour", "lingerie_moonlight_veil", "lingerie_velvet_sin", "lingerie_cherry_bloom",
         "lingerie_shadow_net", "lingerie_pearl_touch", "lingerie_electric_kiss"
     ]
-    # Remove default image URL as we now take IMAGE input
-    # DEFAULT_IMAGE_URL = "https://huggingface.co/PiperMy/Pipelines/resolve/main/assets/persons/stewardess.jpg"
+
+    # Задаем константы для опроса
+    DEFAULT_POLL_INTERVAL = 3  # Секунды
+    DEFAULT_MAX_WAIT_TIME = 300 # Секунды
 
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
                 "api_key": ("STRING", {"forceInput": True}),
-                # Change input type from STRING to IMAGE
-                "image": ("IMAGE",),
+                "image": ("IMAGE",), # Входное изображение
                 "gender": (s.GENDER_LIST, {"default": "auto"}),
                 "style": (s.STYLE_LIST, {"default": "red_swimsuit"}),
-                "poll_interval": ("INT", {"default": 3, "min": 1, "max": 60}),
-                "max_wait_time": ("INT", {"default": 300, "min": 30, "max": 1800}),
+                # Убрали poll_interval и max_wait_time
+                "image_format": (["PNG", "JPEG"], {"default": "PNG"}) # Формат для Base64
             },
-            "optional": { # Prompt is optional for this endpoint based on API spec
+            "optional": {
                  "prompt": ("STRING", {"multiline": True, "default": ""}),
+                 # Seed здесь не нужен, как и в ViolationsDetector
             }
         }
 
     RETURN_TYPES = ("STRING", "IMAGE")
     RETURN_NAMES = ("status_text", "output_image")
     FUNCTION = "dress_image"
-    CATEGORY = "PiperAPI/Image" # Keep in Image category
+    CATEGORY = "PiperAPI/Image"
 
-    def dress_image(self, api_key, image, gender, style, poll_interval, max_wait_time, prompt=None):
+    # Убираем poll_interval, max_wait_time из аргументов, добавляем image_format
+    def dress_image(self, api_key, image, gender, style, image_format, prompt=None):
+        # Используем константы
+        poll_interval = self.DEFAULT_POLL_INTERVAL
+        max_wait_time = self.DEFAULT_MAX_WAIT_TIME
+
         launch_url = "https://app.piper.my/api/dress-factory-v1/launch"
         state_url_template = "https://app.piper.my/api/launches/{}/state"
-        empty_image = create_empty_image_tensor() # Use shared helper
+        empty_image = create_empty_image_tensor()
+        status_text = "Ошибка: Неизвестный сбой."
 
-        # --- Upload Image First ---
-        uploaded_image_url = upload_image_and_get_url(image, api_key)
-        if not uploaded_image_url:
-            err_msg = "Error: Failed to upload image to get URL for Dress Factory."
-            print(err_msg) # Keep error log
+        # 1. Конвертация изображения в Base64
+        try:
+            base64_image_uri = tensor_to_base64_data_uri(image, image_format=image_format)
+            if not base64_image_uri:
+                err_msg = "Критическая ошибка: Не удалось конвертировать изображение в Base64."
+                print(f"[PiperDress] {err_msg}")
+                return (err_msg, empty_image)
+        except Exception as e:
+            print(f"[PiperDress] Критическая ошибка при конвертации в Base64:")
+            traceback.print_exc()
+            err_msg = f"Критическая ошибка подготовки Base64: {e}"
             return (err_msg, empty_image)
-        # --- End Upload ---
 
-        # 1. Launch dress factory task using uploaded URL
+        # 2. Подготовка и запуск задачи
         launch_data = {
             "inputs": {
-                "image": uploaded_image_url, # Use URL from upload
+                "image": base64_image_uri, # Используем Base64
                 "gender": gender,
-                "style": style
+                "style": style,
+                # Добавляем prompt только если он не пустой
+                **({"prompt": prompt.strip()} if prompt and prompt.strip() else {})
             }
         }
-        # Add prompt only if provided
-        if prompt and prompt.strip():
-            launch_data["inputs"]["prompt"] = prompt.strip()
 
-        # print(f"Launching Piper Dress Factory with data: {launch_data}") # Remove info log
-        launch_response = post_request(launch_url, api_key, launch_data)
+        try:
+            # print("[PiperDress] Отправка запроса на запуск...") # Убрано
+            # Используем post_request_json
+            launch_response = post_request_json(launch_url, api_key, launch_data)
+        except Exception as e:
+             print(f"[PiperDress] Критическая ошибка сети при запуске задачи:")
+             traceback.print_exc()
+             err_msg = f"Критическая ошибка сети (запуск): {e}"
+             return (err_msg, empty_image)
 
-        if not launch_response or "_id" not in launch_response:
-            err_msg = "Error: Failed to launch dress factory or get launch ID."
-            print(err_msg) # Keep error log
+        # 3. Проверка ответа на запуск
+        if not launch_response or not isinstance(launch_response, dict) or "_id" not in launch_response:
+            api_error_details = "Неизвестно"
+            if launch_response and isinstance(launch_response, dict): api_error_details = launch_response.get('error', launch_response)
+            elif launch_response: api_error_details = str(launch_response)
+
+            err_msg = f"Критическая ошибка: Не удалось запустить задачу или получить ID. Ответ API: {api_error_details}"
+            print(f"[PiperDress] {err_msg}")
             return (err_msg, empty_image)
 
         launch_id = launch_response["_id"]
         state_url = state_url_template.format(launch_id)
-        # print(f"Piper Dress Factory launched with ID: {launch_id}") # Remove info log
+        # print(f"[PiperDress] Задача запущена. ID: {launch_id}. Опрос...") # Убрано
 
-        # 2. Poll based on 'outputs' and 'errors' fields (same logic as generate_image)
+        # 4. Опрос состояния
         start_time = time.time()
         while True:
             current_time = time.time()
             if current_time - start_time > max_wait_time:
-                err_msg = f"Error: Timed out waiting for dress factory {launch_id}"
-                print(err_msg) # Keep error log
+                err_msg = f"Критическая ошибка: Таймаут ({max_wait_time} сек) ожидания задачи {launch_id}"
+                print(f"[PiperDress] {err_msg}")
                 return (err_msg, empty_image)
 
-            # print(f"Checking state for {launch_id}...") # Remove info log
-            state_response = get_request(state_url, api_key)
+            try:
+                state_response = get_request(state_url, api_key)
+            except Exception as e:
+                 print(f"[PiperDress] Ошибка сети при опросе {launch_id} (повтор через {poll_interval} сек): {e}")
+                 time.sleep(poll_interval)
+                 continue
 
-            if not state_response:
-                # print(f"Retrying state check in {poll_interval}s...") # Remove info log
+            if not state_response or not isinstance(state_response, dict):
+                print(f"[PiperDress] Предупреждение: Некорректный ответ о состоянии {launch_id} (повтор через {poll_interval} сек).")
                 time.sleep(poll_interval)
                 continue
 
             errors = state_response.get("errors")
-            if errors and isinstance(errors, list) and len(errors) > 0:
-                err_msg = f"Error: Dress Factory failed (API Errors: {errors})"
-                print(err_msg) # Keep error log
-                print(f"Full state response: {state_response}") # Keep error details
+            if errors:
+                if isinstance(errors, list) and len(errors) > 0: error_details = ', '.join(map(str, errors))
+                elif isinstance(errors, str): error_details = errors
+                else: error_details = str(errors)
+                err_msg = f"Критическая ошибка API: Задача {launch_id} не удалась. Детали: {error_details}"
+                print(f"[PiperDress] {err_msg}")
+                # print(f"Full state response on error: {state_response}") # Можно раскомментировать для отладки
                 return (err_msg, empty_image)
 
             outputs = state_response.get("outputs")
-            if outputs and isinstance(outputs, dict) and len(outputs) > 0:
-                 # print(f"Dress Factory completed! Outputs: {outputs}") # Remove info log
+            if outputs and isinstance(outputs, dict):
                  output_image_url = outputs.get("image")
-
                  if output_image_url and isinstance(output_image_url, str):
-                     # print(f"Output image URL found: {output_image_url}") # Remove info log
-                     output_image_tensor = url_to_image_tensor(output_image_url) # Use shared helper
-                     if output_image_tensor is not None:
-                         # Success!
-                         return (f"Completed: {output_image_url}", output_image_tensor)
-                     else:
-                         err_msg = f"Completed, but failed to download/process image from {output_image_url}"
-                         print(err_msg) # Keep error log
+                     try:
+                         output_image_tensor = url_to_image_tensor(output_image_url)
+                         if output_image_tensor is None:
+                             raise ValueError("Не удалось загрузить/обработать изображение по URL")
+                         status_text = f"Успех: Изображение обработано задачей {launch_id}."
+                         print(f"[PiperDress] {status_text}") # Сообщение об успехе
+                         return (status_text, output_image_tensor)
+                     except Exception as e:
+                         print(f"[PiperDress] Критическая ошибка обработки результирующего изображения ({launch_id}, URL: {output_image_url}):")
+                         traceback.print_exc()
+                         err_msg = f"Критическая ошибка обработки результата: {e}"
                          return (err_msg, empty_image)
                  else:
-                     err_msg = f"Completed, but output image URL not found or invalid in outputs: {outputs}"
-                     print(err_msg) # Keep error log
+                     err_msg = f"Критическая ошибка: В результатах задачи {launch_id} отсутствует или некорректен URL изображения. Ответ: {outputs}"
+                     print(f"[PiperDress] {err_msg}")
                      return (err_msg, empty_image)
 
-            # print(f"Outputs/Errors are empty for {launch_id}. Assuming 'running'. Waiting {poll_interval}s...") # Remove info log
-            time.sleep(poll_interval) 
+            # Если нет ни ошибок, ни outputs - ждем дальше
+            time.sleep(poll_interval)
+
+        # Сюда код не должен дойти
+        # err_msg = f"Критическая ошибка: Цикл опроса неожиданно завершился для {launch_id}."
+        # print(f"[PiperDress] {err_msg}")
+        # return (err_msg, empty_image)

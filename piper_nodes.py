@@ -14,15 +14,15 @@ from .nodes.api_node import PiperApiKey
 from .nodes.prompt_node import PiperPositivePrompt
 from .nodes.negative_prompt_node import PiperNegativePrompt
 from .nodes.generate_node import PiperGenerateImage
-#from .nodes.violations_node import PiperViolationsDetector
+from .nodes.violations_node import PiperViolationsDetector
 from .nodes.video_node import PiperGenerateVideo
-#from .nodes.dress_node import PiperDressFactory
+from .nodes.dress_node import PiperDressFactory
 from .nodes.save_video_node import PiperSaveVideo
 from .nodes.deepseek_node import PiperAskDeepseek
 from .nodes.llm_question_node import PiperLLMQuestion
-#from .nodes.face_to_image_node import PiperFaceToImage
+from .nodes.face_to_image_node import PiperFaceToImage
 from .nodes.any_llm_node import PiperAskAnyLLM
-#from .nodes.upscale_node import PiperUpscaleImage
+from .nodes.upscale_node import PiperUpscaleImage
 from .nodes.flux_image_node import PiperGenerateFluxImage
 from .nodes.fast_flux_image_node import PiperGenerateFastFluxImage
 
@@ -34,15 +34,15 @@ NODE_CLASS_MAPPINGS = {
     "PiperPositivePrompt": PiperPositivePrompt,
     "PiperNegativePrompt": PiperNegativePrompt,
     "PiperGenerateImage": PiperGenerateImage,
-    #"PiperViolationsDetector": PiperViolationsDetector,
+    "PiperViolationsDetector": PiperViolationsDetector,
     "PiperGenerateVideo": PiperGenerateVideo,
-    #"PiperDressFactory": PiperDressFactory,
+    "PiperDressFactory": PiperDressFactory,
     "PiperSaveVideo": PiperSaveVideo,
     "PiperAskDeepseek": PiperAskDeepseek,
     "PiperLLMQuestion": PiperLLMQuestion,
-    #"PiperFaceToImage": PiperFaceToImage,
+    "PiperFaceToImage": PiperFaceToImage,
     "PiperAskAnyLLM": PiperAskAnyLLM,
-    #"PiperUpscaleImage": PiperUpscaleImage,
+    "PiperUpscaleImage": PiperUpscaleImage,
     "PiperGenerateFluxImage": PiperGenerateFluxImage,
     "PiperGenerateFastFluxImage": PiperGenerateFastFluxImage,
 }
@@ -52,15 +52,15 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "PiperPositivePrompt": "Piper Positive Prompt",
     "PiperNegativePrompt": "Piper Negative Prompt",
     "PiperGenerateImage": "Piper Generate Image (PiperAPI)",
-    #"PiperViolationsDetector": "Piper Violations Detector (PiperAPI)",
+    "PiperViolationsDetector": "Piper Violations Detector (PiperAPI)",
     "PiperGenerateVideo": "Piper Generate Video (PiperAPI)",
-    #"PiperDressFactory": "Piper Dress Factory (PiperAPI)",
+    "PiperDressFactory": "Piper Dress Factory (PiperAPI)",
     "PiperSaveVideo": "Piper Save Video (PiperAPI)",
     "PiperAskDeepseek": "Piper Ask Deepseek (PiperAPI)",
     "PiperLLMQuestion": "Piper LLM Question (PiperAPI)",
-    #"PiperFaceToImage": "Piper Face To Image (PiperAPI)",
+    "PiperFaceToImage": "Piper Face To Image (PiperAPI)",
     "PiperAskAnyLLM": "Piper Ask Any LLM (PiperAPI)",
-    #"PiperUpscaleImage": "Piper Upscale Image (PiperAPI)",
+    "PiperUpscaleImage": "Piper Upscale Image (PiperAPI)",
     "PiperGenerateFluxImage": "Piper Generate Flux Image (PiperAPI)",
     "PiperGenerateFastFluxImage": "Piper Generate Fast Flux (PiperAPI)",
 }
@@ -69,5 +69,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 # WEB_DIRECTORY = "./js"
 
 # Version and registration (optional)
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"] 
